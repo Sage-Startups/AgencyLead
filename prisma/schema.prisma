@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  fullName     String?
+  companyName  String?
+  role         String   @default("user")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  leads         Lead[]
+  aiAudits      AiAudit[]
+  importBatches ImportBatch[]
+  activityLogs  ActivityLog[]
+}
+
+model Lead {
+  id                 String   @id @default(uuid())
+  userId             String
+  businessName       String
+  niche              String
+  city               String
+  state              String
+  zipCode            String?
+  websiteUrl         String?
+  email              String?
+  phone              String?
+  googleRating       Float?
+  reviewCount        Int?
+  websiteQuality     String   @default("unknown")
+  hasClearCta        Boolean  @default(false)
+  hasQuoteForm       Boolean  @default(false)
+  seoNotes           String?
+  generalNotes       String?
+  opportunityScore   Int      @default(0)
+  recommendedService String?
+  status             String   @default("new")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id])
+  aiAudits AiAudit[]
+}
+
+model AiAudit {
+  id                 String   @id @default(uuid())
+  userId             String
+  leadId             String
+  auditSummary       String
+  mainIssues         String
+  opportunityReason  String
+  recommendedService String
+  suggestedOffer     String
+  coldEmail          String
+  dmMessage          String
+  callOpener         String
+  followUpMessage    String
+  createdAt          DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+model WaitlistSignup {
+  id          String   @id @default(uuid())
+  name        String
+  email       String
+  companyName String?
+  buyerType   String?
+  mainService String?
+  message     String?
+  status      String   @default("new")
+  createdAt   DateTime @default(now())
+}
+
+model ImportBatch {
+  id             String   @id @default(uuid())
+  userId         String
+  fileName       String
+  totalRows      Int
+  successfulRows Int
+  failedRows     Int
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  actionType  String
+  description String
+  createdAt   DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+}
