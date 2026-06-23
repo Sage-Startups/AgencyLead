@@ -8,8 +8,20 @@ const inter = Inter({ subsets: ['latin'] })
 const siteTitle = 'AgencyLead Radar — AI Lead Scoring for US Agencies'
 const siteDescription = 'Find local businesses that need your web design or SEO services. Score leads, spot online weaknesses, generate personalized outreach in seconds.'
 
+// Tolerate NEXT_PUBLIC_APP_URL being set without a scheme (e.g. "example.com")
+// or being invalid — new URL() would otherwise throw at build time.
+function resolveBaseUrl(): URL {
+  const raw = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const withProtocol = /^https?:\/\//.test(raw) ? raw : `https://${raw}`
+  try {
+    return new URL(withProtocol)
+  } catch {
+    return new URL('http://localhost:3000')
+  }
+}
+
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+  metadataBase: resolveBaseUrl(),
   title: siteTitle,
   description: siteDescription,
   openGraph: {
