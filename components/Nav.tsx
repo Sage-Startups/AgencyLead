@@ -18,12 +18,17 @@ export function Nav() {
             </div>
             <span className="text-white font-semibold text-lg">AgencyLead Radar</span>
           </Link>
+
           <div className="hidden md:flex items-center gap-6">
             <Link href="/#how-it-works" className="text-slate-400 hover:text-white text-sm transition-colors">How It Works</Link>
             <Link href="/pricing" className="text-slate-400 hover:text-white text-sm transition-colors">Pricing</Link>
             <Link href="/waitlist" className="text-slate-400 hover:text-white text-sm transition-colors">Join Waitlist</Link>
-            <Link href="/demo"><Button size="sm">Try Demo</Button></Link>
+            <Link href="/login" className="text-slate-400 hover:text-white text-sm transition-colors">Log In</Link>
+            <Link href="/demo">
+              <Button size="sm">Try Demo</Button>
+            </Link>
           </div>
+
           <button className="md:hidden text-slate-400 hover:text-white" onClick={() => setOpen(!open)}>
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={open ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
@@ -35,6 +40,7 @@ export function Nav() {
             <Link href="/#how-it-works" className="text-slate-400 hover:text-white text-sm py-2">How It Works</Link>
             <Link href="/pricing" className="text-slate-400 hover:text-white text-sm py-2">Pricing</Link>
             <Link href="/waitlist" className="text-slate-400 hover:text-white text-sm py-2">Join Waitlist</Link>
+            <Link href="/login" className="text-slate-400 hover:text-white text-sm py-2">Log In</Link>
             <Link href="/demo"><Button size="sm" className="w-full">Try Demo</Button></Link>
           </div>
         )}

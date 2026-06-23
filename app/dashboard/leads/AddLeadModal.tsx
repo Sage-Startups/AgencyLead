@@ -2,18 +2,55 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 
-interface Props { onClose: () => void; onSaved: () => void }
+export interface EditableLead {
+  id: string
+  businessName: string
+  niche: string
+  city: string
+  state: string
+  zipCode?: string | null
+  websiteUrl?: string | null
+  email?: string | null
+  phone?: string | null
+  googleRating?: number | null
+  reviewCount?: number | null
+  websiteQuality?: string | null
+  hasClearCta?: boolean
+  hasQuoteForm?: boolean
+  seoNotes?: string | null
+  generalNotes?: string | null
+  recommendedService?: string | null
+}
+
+interface Props {
+  onClose: () => void
+  onSaved: () => void
+  lead?: EditableLead
+}
 
 const QUALITIES = ['unknown', 'good', 'average', 'poor', 'missing']
 const US_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY']
 
-export function AddLeadModal({ onClose, onSaved }: Props) {
+export function AddLeadModal({ onClose, onSaved, lead }: Props) {
+  const isEdit = Boolean(lead)
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
-    businessName: '', niche: '', city: '', state: '', zipCode: '',
-    websiteUrl: '', email: '', phone: '', googleRating: '', reviewCount: '',
-    websiteQuality: 'unknown', hasClearCta: false, hasQuoteForm: false,
-    seoNotes: '', generalNotes: '', recommendedService: '',
+    businessName: lead?.businessName ?? '',
+    niche: lead?.niche ?? '',
+    city: lead?.city ?? '',
+    state: lead?.state ?? '',
+    zipCode: lead?.zipCode ?? '',
+    websiteUrl: lead?.websiteUrl ?? '',
+    email: lead?.email ?? '',
+    phone: lead?.phone ?? '',
+    googleRating: lead?.googleRating != null ? String(lead.googleRating) : '',
+    reviewCount: lead?.reviewCount != null ? String(lead.reviewCount) : '',
+    websiteQuality: lead?.websiteQuality ?? 'unknown',
+    hasClearCta: lead?.hasClearCta ?? false,
+    hasQuoteForm: lead?.hasQuoteForm ?? false,
+    seoNotes: lead?.seoNotes ?? '',
+    generalNotes: lead?.generalNotes ?? '',
+    recommendedService: lead?.recommendedService ?? '',
   })
 
   const set = (k: string, v: string | boolean) => setForm(p => ({ ...p, [k]: v }))
@@ -21,8 +58,8 @@ export function AddLeadModal({ onClose, onSaved }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    const res = await fetch('/api/leads', {
-      method: 'POST',
+    const res = await fetch(isEdit ? `/api/leads/${lead!.id}` : '/api/leads', {
+      method: isEdit ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     })
@@ -34,7 +71,7 @@ export function AddLeadModal({ onClose, onSaved }: Props) {
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
       <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-slate-700">
-          <h2 className="text-white font-bold text-lg">Add New Lead</h2>
+          <h2 className="text-white font-bold text-lg">{isEdit ? 'Edit Lead' : 'Add New Lead'}</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white">✕</button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -53,7 +90,13 @@ export function AddLeadModal({ onClose, onSaved }: Props) {
             ].map(f => (
               <div key={f.k}>
                 <label className="block text-xs font-medium text-slate-400 mb-1">{f.l}{f.req && <span className="text-red-400 ml-1">*</span>}</label>
-                <input type="text" required={f.req} value={form[f.k as keyof typeof form] as string} onChange={e => set(f.k, e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 text-sm" />
+                <input
+                  type="text"
+                  required={f.req}
+                  value={form[f.k as keyof typeof form] as string}
+                  onChange={e => set(f.k, e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 text-sm"
+                />
               </div>
             ))}
             <div>
@@ -89,7 +132,7 @@ export function AddLeadModal({ onClose, onSaved }: Props) {
             <textarea rows={2} value={form.generalNotes} onChange={e => set('generalNotes', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-blue-500 text-sm resize-none" />
           </div>
           <div className="flex gap-3 pt-2">
-            <Button type="submit" disabled={loading}>{loading ? 'Saving...' : 'Add Lead'}</Button>
+            <Button type="submit" disabled={loading}>{loading ? 'Saving...' : isEdit ? 'Save Changes' : 'Add Lead'}</Button>
             <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           </div>
         </form>

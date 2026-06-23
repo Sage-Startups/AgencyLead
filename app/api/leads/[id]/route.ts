@@ -24,19 +24,36 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const existing = await prisma.lead.findFirst({ where: { id, userId: session.userId } })
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
+  // Coerce numeric fields (forms send them as strings) and merge with existing
+  // values so both full edits and partial updates (e.g. status-only) work.
+  const num = (v: unknown, fallback: number | null, parse: (s: string) => number) => {
+    if (v === undefined) return fallback
+    if (v === '' || v === null) return null
+    return typeof v === 'number' ? v : parse(String(v))
+  }
+
+  const googleRating = num(data.googleRating, existing.googleRating, parseFloat)
+  const reviewCount = num(data.reviewCount, existing.reviewCount, (s) => parseInt(s, 10))
+
   const score = calculateOpportunityScore({
     websiteUrl: data.websiteUrl ?? existing.websiteUrl,
     websiteQuality: data.websiteQuality ?? existing.websiteQuality,
-    googleRating: data.googleRating ?? existing.googleRating,
-    reviewCount: data.reviewCount ?? existing.reviewCount,
+    googleRating,
+    reviewCount,
     hasClearCta: data.hasClearCta ?? existing.hasClearCta,
     hasQuoteForm: data.hasQuoteForm ?? existing.hasQuoteForm,
     seoNotes: data.seoNotes ?? existing.seoNotes,
   })
 
+  const rest = { ...data }
+  delete rest.googleRating
+  delete rest.reviewCount
+  delete rest.id
+  delete rest.aiAudits
+
   const lead = await prisma.lead.update({
     where: { id },
-    data: { ...data, opportunityScore: score, updatedAt: new Date() },
+    data: { ...rest, googleRating, reviewCount, opportunityScore: score, updatedAt: new Date() },
   })
   return NextResponse.json(lead)
 }

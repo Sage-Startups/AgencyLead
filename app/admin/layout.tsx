@@ -9,7 +9,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="min-h-screen bg-slate-950">
       <DashboardNav userName={user.email} isAdmin={true} />
-      <main className="ml-56 min-h-screen p-6">{children}</main>
+      <main className="md:ml-56 min-h-screen p-4 pt-20 md:p-6">{children}</main>
       <ToastContainer />
     </div>
   )

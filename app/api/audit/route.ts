@@ -9,6 +9,13 @@ export async function POST(req: NextRequest) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  if (!process.env.OPENAI_API_KEY) {
+    return NextResponse.json(
+      { error: 'AI audit is not configured. Add an OPENAI_API_KEY environment variable to enable AI generation.' },
+      { status: 503 }
+    )
+  }
+
   const { leadId } = await req.json()
   if (!leadId) return NextResponse.json({ error: 'leadId required' }, { status: 400 })
 

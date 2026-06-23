@@ -3,10 +3,9 @@ import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
 import { ScoreBadge } from '@/components/ui/ScoreBadge'
 import { toast } from '@/components/ui/Toast'
-import { AddLeadModal } from './AddLeadModal'
+import { AddLeadModal, type EditableLead } from './AddLeadModal'
 import { ImportModal } from './ImportModal'
 
 type Lead = {
@@ -24,14 +23,6 @@ type Lead = {
   status: string
 }
 
-function statusVariant(s: string) {
-  if (s === 'saved') return 'info'
-  if (s === 'contacted') return 'warning'
-  if (s === 'interested') return 'success'
-  if (s === 'not_suitable') return 'danger'
-  return 'default'
-}
-
 const STATUSES = ['new', 'saved', 'contacted', 'interested', 'not_suitable']
 const US_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY']
 
@@ -46,6 +37,7 @@ export default function LeadsPage() {
   const [minScore, setMinScore] = useState('')
   const [showAdd, setShowAdd] = useState(searchParams.get('add') === '1')
   const [showImport, setShowImport] = useState(false)
+  const [editLead, setEditLead] = useState<EditableLead | null>(null)
 
   const fetchLeads = useCallback(async () => {
     setLoading(true)
@@ -80,6 +72,12 @@ export default function LeadsPage() {
     fetchLeads()
   }
 
+  async function openEdit(id: string) {
+    const res = await fetch(`/api/leads/${id}`)
+    if (!res.ok) { toast('Could not load lead', 'error'); return }
+    setEditLead(await res.json())
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -94,26 +92,54 @@ export default function LeadsPage() {
         </div>
       </div>
 
+      {/* Filters */}
       <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-4 mb-6 flex flex-wrap gap-3">
-        <input type="text" placeholder="Search business name..." value={search} onChange={e => setSearch(e.target.value)} className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 text-sm w-52" />
-        <input type="text" placeholder="Filter by niche..." value={niche} onChange={e => setNiche(e.target.value)} className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 text-sm w-40" />
-        <select value={state} onChange={e => setState(e.target.value)} className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-100 focus:outline-none focus:border-blue-500 text-sm">
+        <input
+          type="text"
+          placeholder="Search business name..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 text-sm w-52"
+        />
+        <input
+          type="text"
+          placeholder="Filter by niche..."
+          value={niche}
+          onChange={e => setNiche(e.target.value)}
+          className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 text-sm w-40"
+        />
+        <select
+          value={state}
+          onChange={e => setState(e.target.value)}
+          className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-100 focus:outline-none focus:border-blue-500 text-sm"
+        >
           <option value="">All States</option>
           {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
-        <select value={status} onChange={e => setStatus(e.target.value)} className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-100 focus:outline-none focus:border-blue-500 text-sm">
+        <select
+          value={status}
+          onChange={e => setStatus(e.target.value)}
+          className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-100 focus:outline-none focus:border-blue-500 text-sm"
+        >
           <option value="">All Statuses</option>
           {STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
         </select>
-        <select value={minScore} onChange={e => setMinScore(e.target.value)} className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-100 focus:outline-none focus:border-blue-500 text-sm">
+        <select
+          value={minScore}
+          onChange={e => setMinScore(e.target.value)}
+          className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-100 focus:outline-none focus:border-blue-500 text-sm"
+        >
           <option value="">All Scores</option>
           <option value="80">High (80+)</option>
           <option value="60">Medium+ (60+)</option>
           <option value="40">Low+ (40+)</option>
         </select>
-        <Button variant="ghost" size="sm" onClick={() => { setSearch(''); setNiche(''); setState(''); setStatus(''); setMinScore('') }}>Clear</Button>
+        <Button variant="ghost" size="sm" onClick={() => { setSearch(''); setNiche(''); setState(''); setStatus(''); setMinScore('') }}>
+          Clear
+        </Button>
       </div>
 
+      {/* Table */}
       <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-slate-500">Loading leads...</div>
@@ -153,13 +179,18 @@ export default function LeadsPage() {
                     <td className="px-4 py-3 whitespace-nowrap"><ScoreBadge score={lead.opportunityScore} /></td>
                     <td className="px-4 py-3 text-slate-400 text-xs max-w-32 truncate">{lead.recommendedService || '—'}</td>
                     <td className="px-4 py-3">
-                      <select value={lead.status} onChange={e => updateStatus(lead.id, e.target.value)} className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-300 focus:outline-none focus:border-blue-500">
+                      <select
+                        value={lead.status}
+                        onChange={e => updateStatus(lead.id, e.target.value)}
+                        className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-300 focus:outline-none focus:border-blue-500"
+                      >
                         {STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
                       </select>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex gap-1">
                         <Link href={`/dashboard/leads/${lead.id}`}><Button size="sm" variant="ghost">View</Button></Link>
+                        <Button size="sm" variant="ghost" onClick={() => openEdit(lead.id)}>Edit</Button>
                         <Button size="sm" variant="danger" onClick={() => deleteLead(lead.id, lead.businessName)}>Del</Button>
                       </div>
                     </td>
@@ -172,6 +203,7 @@ export default function LeadsPage() {
       </div>
 
       {showAdd && <AddLeadModal onClose={() => setShowAdd(false)} onSaved={() => { setShowAdd(false); fetchLeads(); toast('Lead added!') }} />}
+      {editLead && <AddLeadModal lead={editLead} onClose={() => setEditLead(null)} onSaved={() => { setEditLead(null); fetchLeads(); toast('Lead updated!') }} />}
       {showImport && <ImportModal onClose={() => setShowImport(false)} onImported={() => { setShowImport(false); fetchLeads(); }} />}
     </div>
   )
