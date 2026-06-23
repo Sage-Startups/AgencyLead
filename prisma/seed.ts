@@ -5,26 +5,31 @@ import { calculateOpportunityScore } from '../lib/scoring'
 const prisma = new PrismaClient()
 
 async function main() {
-  // Create admin user
-  const adminHash = await bcrypt.hash('admin123', 10)
+  // Admin credentials are env-driven so a buyer can set their own before the
+  // first deploy. The password syncs on every seed run, so updating
+  // ADMIN_PASSWORD and redeploying rotates it.
+  const adminEmail = (process.env.ADMIN_EMAIL || 'admin@agencyleadradar.com').toLowerCase()
+  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123'
+  const adminHash = await bcrypt.hash(adminPassword, 10)
   await prisma.user.upsert({
-    where: { email: 'admin@agencyleadradar.com' },
-    update: {},
+    where: { email: adminEmail },
+    update: { passwordHash: adminHash, role: 'admin' },
     create: {
-      email: 'admin@agencyleadradar.com',
+      email: adminEmail,
       passwordHash: adminHash,
       fullName: 'Admin User',
       role: 'admin',
     },
   })
 
-  // Create demo user
+  // Create demo user (public read-only account)
+  const demoEmail = (process.env.DEMO_EMAIL || 'demo@agencyleadradar.com').toLowerCase()
   const demoHash = await bcrypt.hash('demo123', 10)
   const demo = await prisma.user.upsert({
-    where: { email: 'demo@agencyleadradar.com' },
+    where: { email: demoEmail },
     update: {},
     create: {
-      email: 'demo@agencyleadradar.com',
+      email: demoEmail,
       passwordHash: demoHash,
       fullName: 'Demo User',
       companyName: 'AgencyLead Demo',
@@ -37,8 +42,8 @@ async function main() {
   const existingLeadCount = await prisma.lead.count({ where: { userId: demo.id } })
   if (existingLeadCount > 0) {
     console.log(`Demo leads already present (${existingLeadCount}). Skipping lead seed.`)
-    console.log('Admin: admin@agencyleadradar.com / admin123')
-    console.log('Demo:  demo@agencyleadradar.com  / demo123')
+    console.log(`Admin user: ${adminEmail}`)
+    console.log(`Demo user:  ${demoEmail}`)
     return
   }
 
@@ -105,8 +110,8 @@ async function main() {
   }
 
   console.log(`Seeded ${rawLeads.length} demo leads for demo user`)
-  console.log('Admin: admin@agencyleadradar.com / admin123')
-  console.log('Demo:  demo@agencyleadradar.com  / demo123')
+  console.log(`Admin user: ${adminEmail}`)
+  console.log(`Demo user:  ${demoEmail}`)
 }
 
 main()

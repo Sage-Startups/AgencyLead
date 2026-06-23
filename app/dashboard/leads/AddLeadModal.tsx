@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
+import { toast } from '@/components/ui/Toast'
 
 export interface EditableLead {
   id: string
@@ -64,7 +65,12 @@ export function AddLeadModal({ onClose, onSaved, lead }: Props) {
       body: JSON.stringify(form),
     })
     setLoading(false)
-    if (res.ok) onSaved()
+    if (res.ok) {
+      onSaved()
+      return
+    }
+    const data = await res.json().catch(() => ({}))
+    toast(data.error || 'Could not save lead', 'error')
   }
 
   return (

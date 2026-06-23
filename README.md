@@ -144,6 +144,8 @@ DATABASE_URL        = (from Neon)        # REQUIRED — build fails without it
 APP_SECRET          = (random secret)    # REQUIRED — generate with: openssl rand -base64 32
 OPENAI_API_KEY      = sk-...              # Optional — needed only for AI audit generation
 NEXT_PUBLIC_APP_URL = https://your-domain.vercel.app
+ADMIN_EMAIL         = you@yourcompany.com # Recommended — your own admin login
+ADMIN_PASSWORD      = (a strong password) # Recommended — rotates on each deploy
 ```
 
 > **`APP_SECRET` is required in production.** The app throws if it is missing,
@@ -152,6 +154,12 @@ NEXT_PUBLIC_APP_URL = https://your-domain.vercel.app
 > **`OPENAI_API_KEY` is optional.** Everything except AI audit generation works
 > without it. If it's unset, the "Generate AI Audit" button returns a clear
 > "not configured" message instead of failing silently.
+>
+> **Set `ADMIN_EMAIL` / `ADMIN_PASSWORD` before your first deploy.** They default
+> to `admin@agencyleadradar.com` / `admin123` (public in this repo). The seed
+> re-applies the password on every deploy, so changing `ADMIN_PASSWORD` and
+> redeploying rotates your admin login. The admin area can read waitlist
+> signups (real emails), so do not leave the default password in production.
 
 ### 3. Deploy
 
@@ -227,6 +235,20 @@ Public demo page: `/demo` · Login page: `/login`
 
 ---
 
+## Security & Demo Notes
+
+- **The public demo account is read-only.** Anyone using the `/demo` login shares
+  one account, so adding, editing, deleting, and importing leads are blocked for
+  it (the API returns a clear message). This keeps the shared demo dataset from
+  being vandalized. Real accounts have full access.
+- **Change the admin password.** See `ADMIN_EMAIL` / `ADMIN_PASSWORD` above. The
+  defaults are public in this repo.
+- **AI audit is rate-limited** (5 generations per user per 10 minutes) so the
+  public demo can't be used to run up your OpenAI bill. For full protection,
+  also set a hard monthly spend cap on your key in the OpenAI dashboard.
+
+---
+
 ## Key Routes
 
 | Route | Description |
@@ -259,10 +281,11 @@ This is an honest pre-revenue MVP. It includes:
 1. Create a Vercel account and project
 2. Connect Neon Postgres from Vercel Marketplace
 3. Set the environment variables (`DATABASE_URL` and `APP_SECRET` are required;
-   `OPENAI_API_KEY` is optional for AI audits)
+   `OPENAI_API_KEY` is optional for AI audits; set `ADMIN_EMAIL` / `ADMIN_PASSWORD`)
 4. Deploy — the build automatically creates the schema (`prisma db push`) and
    seeds demo data (`prisma db seed`)
-5. Log in at `/login` with the admin credentials, or use the demo button at `/demo`
+5. Log in at `/login` with your admin credentials, or use the demo button at `/demo`
+6. Change the admin password and set an OpenAI spend cap before going public
 
 **No real revenue, no real customers, no fake testimonials.** This is a pre-revenue asset built for demonstration and resale purposes.
 

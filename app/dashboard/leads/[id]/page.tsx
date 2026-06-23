@@ -110,11 +110,16 @@ export default function LeadDetailPage() {
   }
 
   async function updateStatus(status: string) {
-    await fetch(`/api/leads/${id}`, {
+    const res = await fetch(`/api/leads/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      toast(data.error || 'Update failed', 'error')
+      return
+    }
     setLead(prev => prev ? { ...prev, status } : prev)
     toast(`Status updated to ${status.replace('_', ' ')}`)
   }
@@ -126,6 +131,7 @@ export default function LeadDetailPage() {
 
   return (
     <div className="max-w-5xl">
+      {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
           <Link href="/dashboard/leads" className="text-slate-500 hover:text-slate-300 text-sm transition-colors">← Lead Scanner</Link>
@@ -138,16 +144,22 @@ export default function LeadDetailPage() {
         </div>
       </div>
 
+      {/* Action buttons */}
       <div className="flex flex-wrap gap-2 mb-6">
         <Button size="sm" onClick={() => updateStatus('saved')}>Save Lead</Button>
         <Button size="sm" variant="secondary" onClick={() => updateStatus('contacted')}>Mark Contacted</Button>
-        <select value={lead.status} onChange={e => updateStatus(e.target.value)} className="bg-slate-800 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-300 text-sm focus:outline-none focus:border-blue-500">
+        <select
+          value={lead.status}
+          onChange={e => updateStatus(e.target.value)}
+          className="bg-slate-800 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-300 text-sm focus:outline-none focus:border-blue-500"
+        >
           {STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
         </select>
         <a href="/api/leads/export"><Button size="sm" variant="ghost">Export All</Button></a>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {/* Business overview */}
         <Card className="lg:col-span-2">
           <h2 className="text-white font-semibold mb-4">Business Overview</h2>
           <div className="grid grid-cols-2 gap-4">
@@ -181,6 +193,7 @@ export default function LeadDetailPage() {
           )}
         </Card>
 
+        {/* Score card */}
         <div className="space-y-4">
           <Card>
             <h2 className="text-white font-semibold mb-3">Opportunity Score</h2>
@@ -189,7 +202,10 @@ export default function LeadDetailPage() {
                 {lead.opportunityScore}
               </div>
               <div className="w-full bg-slate-700 rounded-full h-2 mb-2">
-                <div className={`h-2 rounded-full transition-all ${lead.opportunityScore >= 80 ? 'bg-green-500' : lead.opportunityScore >= 60 ? 'bg-amber-500' : 'bg-slate-500'}`} style={{ width: `${lead.opportunityScore}%` }} />
+                <div
+                  className={`h-2 rounded-full transition-all ${lead.opportunityScore >= 80 ? 'bg-green-500' : lead.opportunityScore >= 60 ? 'bg-amber-500' : 'bg-slate-500'}`}
+                  style={{ width: `${lead.opportunityScore}%` }}
+                />
               </div>
               <p className="text-slate-400 text-sm">{lead.opportunityScore >= 80 ? 'High' : lead.opportunityScore >= 60 ? 'Medium' : 'Low'} opportunity</p>
             </div>
@@ -203,10 +219,15 @@ export default function LeadDetailPage() {
         </div>
       </div>
 
+      {/* AI Audit section */}
       <Card>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-white font-semibold">AI Audit & Outreach</h2>
-          <Button onClick={generateAudit} disabled={generatingAudit} size="sm">
+          <Button
+            onClick={generateAudit}
+            disabled={generatingAudit}
+            size="sm"
+          >
             {generatingAudit ? '⏳ Generating...' : latestAudit ? '↻ Regenerate Audit' : '✦ Generate AI Audit'}
           </Button>
         </div>
@@ -245,6 +266,8 @@ export default function LeadDetailPage() {
               <p className="text-slate-500 text-xs uppercase tracking-wider mb-2">Suggested Offer</p>
               <div className="bg-blue-950/40 border border-blue-800/40 rounded-lg p-4 text-blue-200 text-sm">{latestAudit.suggestedOffer}</div>
             </div>
+
+            {/* Outreach tabs */}
             <div>
               <p className="text-slate-500 text-xs uppercase tracking-wider mb-3">Outreach Templates</p>
               <div className="flex gap-1 mb-4 border-b border-slate-700">
@@ -254,7 +277,15 @@ export default function LeadDetailPage() {
                   { key: 'call', label: 'Call Opener' },
                   { key: 'follow-up', label: 'Follow-Up' },
                 ].map(tab => (
-                  <button key={tab.key} onClick={() => setActiveTab(tab.key as typeof activeTab)} className={`px-4 py-2 text-sm font-medium transition-colors -mb-px border-b-2 ${activeTab === tab.key ? 'text-blue-400 border-blue-400' : 'text-slate-500 border-transparent hover:text-slate-300'}`}>
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key as typeof activeTab)}
+                    className={`px-4 py-2 text-sm font-medium transition-colors -mb-px border-b-2 ${
+                      activeTab === tab.key
+                        ? 'text-blue-400 border-blue-400'
+                        : 'text-slate-500 border-transparent hover:text-slate-300'
+                    }`}
+                  >
                     {tab.label}
                   </button>
                 ))}

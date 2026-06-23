@@ -56,18 +56,29 @@ export default function LeadsPage() {
   useEffect(() => { fetchLeads() }, [fetchLeads])
 
   async function updateStatus(id: string, newStatus: string) {
-    await fetch(`/api/leads/${id}`, {
+    const res = await fetch(`/api/leads/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus }),
     })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      toast(data.error || 'Update failed', 'error')
+      fetchLeads()
+      return
+    }
     toast(`Status updated to ${newStatus.replace('_', ' ')}`)
     fetchLeads()
   }
 
   async function deleteLead(id: string, name: string) {
     if (!confirm(`Delete "${name}"? This cannot be undone.`)) return
-    await fetch(`/api/leads/${id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/leads/${id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      toast(data.error || 'Delete failed', 'error')
+      return
+    }
     toast('Lead deleted', 'error')
     fetchLeads()
   }
@@ -149,7 +160,35 @@ export default function LeadsPage() {
             <Button onClick={() => setShowAdd(true)}>+ Add Your First Lead</Button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Mobile card view */}
+          <div className="md:hidden divide-y divide-slate-700/50">
+            {leads.map(lead => (
+              <div key={lead.id} className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link href={`/dashboard/leads/${lead.id}`} className="text-white font-medium hover:text-blue-300 block truncate">{lead.businessName}</Link>
+                    <p className="text-slate-500 text-xs mt-0.5">{lead.niche} · {lead.city}, {lead.state}</p>
+                  </div>
+                  <ScoreBadge score={lead.opportunityScore} />
+                </div>
+                <div className="flex items-center gap-2 mt-3 flex-wrap">
+                  <select
+                    value={lead.status}
+                    onChange={e => updateStatus(lead.id, e.target.value)}
+                    className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-300 focus:outline-none"
+                  >
+                    {STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
+                  </select>
+                  <Link href={`/dashboard/leads/${lead.id}`}><Button size="sm" variant="ghost">View</Button></Link>
+                  <Button size="sm" variant="ghost" onClick={() => openEdit(lead.id)}>Edit</Button>
+                  <Button size="sm" variant="danger" onClick={() => deleteLead(lead.id, lead.businessName)}>Del</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-700 bg-slate-900/50">
@@ -199,6 +238,7 @@ export default function LeadsPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 

@@ -3,7 +3,6 @@ import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
 import { ScoreBadge } from '@/components/ui/ScoreBadge'
-import { Badge } from '@/components/ui/Badge'
 import { toast } from '@/components/ui/Toast'
 
 type Lead = {
@@ -16,14 +15,6 @@ type Lead = {
   recommendedService: string | null
   status: string
   generalNotes: string | null
-}
-
-function statusVariant(s: string) {
-  if (s === 'saved') return 'info'
-  if (s === 'contacted') return 'warning'
-  if (s === 'interested') return 'success'
-  if (s === 'not_suitable') return 'danger'
-  return 'default'
 }
 
 const STATUSES = ['new', 'saved', 'contacted', 'interested', 'not_suitable']
@@ -50,18 +41,29 @@ export default function SavedLeadsPage() {
   )
 
   async function updateStatus(id: string, status: string) {
-    await fetch(`/api/leads/${id}`, {
+    const res = await fetch(`/api/leads/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      toast(data.error || 'Update failed', 'error')
+      fetchLeads()
+      return
+    }
     toast(`Status updated to ${status.replace('_', ' ')}`)
     fetchLeads()
   }
 
   async function deleteLead(id: string, name: string) {
     if (!confirm(`Delete "${name}"?`)) return
-    await fetch(`/api/leads/${id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/leads/${id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      toast(data.error || 'Delete failed', 'error')
+      return
+    }
     toast('Lead deleted', 'error')
     fetchLeads()
   }
@@ -79,7 +81,13 @@ export default function SavedLeadsPage() {
       </div>
 
       <div className="mb-4">
-        <input type="text" placeholder="Search saved leads..." value={search} onChange={e => setSearch(e.target.value)} className="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 text-sm w-64" />
+        <input
+          type="text"
+          placeholder="Search saved leads..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 text-sm w-full sm:w-64"
+        />
       </div>
 
       <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl overflow-hidden">
@@ -91,7 +99,34 @@ export default function SavedLeadsPage() {
             <Link href="/dashboard/leads"><Button>Go to Lead Scanner</Button></Link>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Mobile card view */}
+          <div className="md:hidden divide-y divide-slate-700/50">
+            {filtered.map(lead => (
+              <div key={lead.id} className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link href={`/dashboard/leads/${lead.id}`} className="text-white font-medium hover:text-blue-300 block truncate">{lead.businessName}</Link>
+                    <p className="text-slate-500 text-xs mt-0.5">{lead.niche} · {lead.city}, {lead.state}</p>
+                  </div>
+                  <ScoreBadge score={lead.opportunityScore} />
+                </div>
+                <div className="flex items-center gap-2 mt-3 flex-wrap">
+                  <select
+                    value={lead.status}
+                    onChange={e => updateStatus(lead.id, e.target.value)}
+                    className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-300 focus:outline-none"
+                  >
+                    {STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
+                  </select>
+                  <Link href={`/dashboard/leads/${lead.id}`}><Button size="sm" variant="ghost">View</Button></Link>
+                  <Button size="sm" variant="danger" onClick={() => deleteLead(lead.id, lead.businessName)}>Del</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-700 bg-slate-900/50">
@@ -111,7 +146,11 @@ export default function SavedLeadsPage() {
                     <td className="px-4 py-3 whitespace-nowrap"><ScoreBadge score={lead.opportunityScore} /></td>
                     <td className="px-4 py-3 text-slate-400 text-xs">{lead.recommendedService || '—'}</td>
                     <td className="px-4 py-3">
-                      <select value={lead.status} onChange={e => updateStatus(lead.id, e.target.value)} className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-300 focus:outline-none">
+                      <select
+                        value={lead.status}
+                        onChange={e => updateStatus(lead.id, e.target.value)}
+                        className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-300 focus:outline-none"
+                      >
                         {STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
                       </select>
                     </td>
@@ -126,6 +165,7 @@ export default function SavedLeadsPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>
