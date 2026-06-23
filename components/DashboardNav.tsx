@@ -51,7 +51,9 @@ export function DashboardNav({ userName, isAdmin }: { userName?: string; isAdmin
       </nav>
       <div className="p-4 border-t border-slate-800">
         <p className="text-slate-500 text-xs mb-3 truncate">{userName}</p>
-        <button onClick={handleLogout} className="text-slate-400 hover:text-white text-sm w-full text-left transition-colors">Log Out</button>
+        <button onClick={handleLogout} className="text-slate-400 hover:text-white text-sm w-full text-left transition-colors">
+          Log Out
+        </button>
       </div>
     </aside>
   )

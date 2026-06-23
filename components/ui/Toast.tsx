@@ -3,7 +3,12 @@ import { useEffect, useState } from 'react'
 import { cn } from '@/lib/cn'
 
 type ToastType = 'success' | 'error' | 'info'
-interface Toast { id: string; message: string; type: ToastType }
+
+interface Toast {
+  id: string
+  message: string
+  type: ToastType
+}
 
 let addToastFn: ((message: string, type?: ToastType) => void) | null = null
 
