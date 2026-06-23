@@ -8,10 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
-    "db:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts"
+    "db:seed": "ts-node --project tsconfig.seed.json prisma/seed.ts"
   },
   "prisma": {
-    "seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts"
+    "seed": "ts-node --project tsconfig.seed.json prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
