@@ -5,8 +5,9 @@ import { calculateOpportunityScore } from '../lib/scoring'
 const prisma = new PrismaClient()
 
 async function main() {
+  // Create admin user
   const adminHash = await bcrypt.hash('admin123', 10)
-  const admin = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: 'admin@agencyleadradar.com' },
     update: {},
     create: {
@@ -17,6 +18,7 @@ async function main() {
     },
   })
 
+  // Create demo user
   const demoHash = await bcrypt.hash('demo123', 10)
   const demo = await prisma.user.upsert({
     where: { email: 'demo@agencyleadradar.com' },
@@ -30,7 +32,15 @@ async function main() {
     },
   })
 
-  void admin
+  // Idempotent: if the demo user already has leads, skip seeding so repeated
+  // deploys don't duplicate the demo dataset.
+  const existingLeadCount = await prisma.lead.count({ where: { userId: demo.id } })
+  if (existingLeadCount > 0) {
+    console.log(`Demo leads already present (${existingLeadCount}). Skipping lead seed.`)
+    console.log('Admin: admin@agencyleadradar.com / admin123')
+    console.log('Demo:  demo@agencyleadradar.com  / demo123')
+    return
+  }
 
   const rawLeads = [
     { businessName: 'Lone Star Roofing Co.', niche: 'Roofing Contractor', city: 'Austin', state: 'TX', zipCode: '78701', websiteUrl: 'https://example.com', googleRating: 3.8, reviewCount: 14, websiteQuality: 'poor', hasClearCta: false, hasQuoteForm: false, seoNotes: 'No roofing service pages, weak local targeting, no trust badges.', generalNotes: 'Good prospect for website redesign and local SEO.', recommendedService: 'Website Redesign + Local SEO', status: 'new' },
