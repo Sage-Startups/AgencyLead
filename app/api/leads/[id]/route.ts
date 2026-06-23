@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { calculateOpportunityScore } from '@/lib/scoring'
+import { isDemoUser, DEMO_READONLY_MESSAGE } from '@/lib/demo'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession()
@@ -18,6 +19,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (await isDemoUser(session.userId)) {
+    return NextResponse.json({ error: DEMO_READONLY_MESSAGE }, { status: 403 })
+  }
   const { id } = await params
   const data = await req.json()
 
@@ -61,6 +65,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (await isDemoUser(session.userId)) {
+    return NextResponse.json({ error: DEMO_READONLY_MESSAGE }, { status: 403 })
+  }
   const { id } = await params
   const existing = await prisma.lead.findFirst({ where: { id, userId: session.userId } })
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })

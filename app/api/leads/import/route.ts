@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { calculateOpportunityScore } from '@/lib/scoring'
+import { isDemoUser, DEMO_READONLY_MESSAGE } from '@/lib/demo'
 
 const REQUIRED = ['business_name', 'niche', 'city', 'state']
 
 export async function POST(req: NextRequest) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (await isDemoUser(session.userId)) {
+    return NextResponse.json({ error: DEMO_READONLY_MESSAGE }, { status: 403 })
+  }
 
   const { rows, fileName } = await req.json()
   if (!Array.isArray(rows) || rows.length === 0) {
