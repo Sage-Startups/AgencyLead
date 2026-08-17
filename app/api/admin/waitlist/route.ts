@@ -5,7 +5,7 @@ import { leadsToCSV } from '@/lib/export'
 
 export async function GET(req: NextRequest) {
   const session = await getSession()
-  if (!session || session.role !== 'admin') {
+  if (!session || (session.role !== 'admin' && session.role !== 'superadmin')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   const session = await getSession()
-  if (!session || session.role !== 'admin') {
+  if (!session || (session.role !== 'admin' && session.role !== 'superadmin')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   const { id, status } = await req.json()

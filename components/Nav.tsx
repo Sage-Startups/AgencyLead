@@ -22,8 +22,9 @@ export function Nav() {
             <Link href="/pricing" className="text-slate-400 hover:text-white text-sm transition-colors">Pricing</Link>
             <Link href="/waitlist" className="text-slate-400 hover:text-white text-sm transition-colors">Join Waitlist</Link>
             <Link href="/login" className="text-slate-400 hover:text-white text-sm transition-colors">Log In</Link>
-            <Link href="/demo">
-              <Button size="sm">Try Demo</Button>
+            <Link href="/demo" className="text-slate-400 hover:text-white text-sm transition-colors">Try Demo</Link>
+            <Link href="/signup">
+              <Button size="sm">Sign Up Free</Button>
             </Link>
           </div>
 
@@ -39,7 +40,8 @@ export function Nav() {
             <Link href="/pricing" className="text-slate-400 hover:text-white text-sm py-2">Pricing</Link>
             <Link href="/waitlist" className="text-slate-400 hover:text-white text-sm py-2">Join Waitlist</Link>
             <Link href="/login" className="text-slate-400 hover:text-white text-sm py-2">Log In</Link>
-            <Link href="/demo"><Button size="sm" className="w-full">Try Demo</Button></Link>
+            <Link href="/demo" className="text-slate-400 hover:text-white text-sm py-2">Try Demo</Link>
+            <Link href="/signup"><Button size="sm" className="w-full">Sign Up Free</Button></Link>
           </div>
         )}
       </div>
