@@ -246,6 +246,17 @@ Public demo page: `/demo` · Login page: `/login`
 - **AI audit is rate-limited** (5 generations per user per 10 minutes) so the
   public demo can't be used to run up your OpenAI bill. For full protection,
   also set a hard monthly spend cap on your key in the OpenAI dashboard.
+- **Login is rate-limited** (10 attempts per IP per 10 minutes) to blunt brute
+  force against the admin account.
+- **The waitlist form is rate-limited** (5 submissions per IP per 10 minutes).
+- **Waitlist data is never exposed publicly.** Signups are readable only through
+  `GET /api/admin/waitlist`, which requires an authenticated admin session.
+- **Rate limits are in-memory and per instance.** They reset on cold start and
+  are not shared across serverless instances, so treat them as a speed bump
+  rather than a guarantee. See `lib/rate-limit.ts`.
+- **Legal pages are templates.** `/privacy` and `/terms` ship with [BRACKETED]
+  placeholders and must be completed and reviewed by counsel before commercial
+  use.
 
 ---
 
@@ -258,6 +269,8 @@ Public demo page: `/demo` · Login page: `/login`
 | `/waitlist` | Waitlist signup form |
 | `/demo` | Demo access page with credentials |
 | `/login` | Email/password login form |
+| `/privacy` | Privacy policy (template — needs legal review) |
+| `/terms` | Terms of service (template — needs legal review) |
 | `/dashboard` | Main dashboard |
 | `/dashboard/leads` | Lead Scanner |
 | `/dashboard/leads/[id]` | Lead detail + AI audit |
