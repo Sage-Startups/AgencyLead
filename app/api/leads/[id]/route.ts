@@ -50,6 +50,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   })
 
   const rest = { ...data }
+  // A full edit implies a human has reviewed the record, so an AI-suggested
+  // lead becomes verified once its details are filled in by hand.
+  if (data.businessName !== undefined && data.verified === undefined) {
+    rest.verified = true
+  }
   delete rest.googleRating
   delete rest.reviewCount
   delete rest.id

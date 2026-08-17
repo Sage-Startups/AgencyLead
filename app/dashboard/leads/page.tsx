@@ -7,6 +7,7 @@ import { ScoreBadge } from '@/components/ui/ScoreBadge'
 import { toast } from '@/components/ui/Toast'
 import { AddLeadModal, type EditableLead } from './AddLeadModal'
 import { ImportModal } from './ImportModal'
+import { DiscoverModal } from './DiscoverModal'
 
 type Lead = {
   id: string
@@ -21,6 +22,8 @@ type Lead = {
   opportunityScore: number
   recommendedService: string | null
   status: string
+  source?: string
+  verified?: boolean
 }
 
 const STATUSES = ['new', 'saved', 'contacted', 'interested', 'not_suitable']
@@ -37,6 +40,7 @@ export default function LeadsPage() {
   const [minScore, setMinScore] = useState('')
   const [showAdd, setShowAdd] = useState(searchParams.get('add') === '1')
   const [showImport, setShowImport] = useState(false)
+  const [showDiscover, setShowDiscover] = useState(false)
   const [editLead, setEditLead] = useState<EditableLead | null>(null)
 
   const fetchLeads = useCallback(async () => {
@@ -97,9 +101,10 @@ export default function LeadsPage() {
           <p className="text-slate-400 text-sm">{leads.length} leads found</p>
         </div>
         <div className="flex gap-2">
+          <Button size="sm" onClick={() => setShowDiscover(true)}>✦ Find Prospects</Button>
           <Button variant="secondary" size="sm" onClick={() => setShowImport(true)}>Import CSV</Button>
           <a href="/api/leads/export"><Button variant="secondary" size="sm">Export CSV</Button></a>
-          <Button size="sm" onClick={() => setShowAdd(true)}>+ Add Lead</Button>
+          <Button variant="secondary" size="sm" onClick={() => setShowAdd(true)}>+ Add Lead</Button>
         </div>
       </div>
 
@@ -157,7 +162,10 @@ export default function LeadsPage() {
         ) : leads.length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-slate-400 mb-3">No leads found.</p>
-            <Button onClick={() => setShowAdd(true)}>+ Add Your First Lead</Button>
+            <div className="flex gap-2 justify-center">
+              <Button onClick={() => setShowDiscover(true)}>✦ Find Prospects with AI</Button>
+              <Button variant="secondary" onClick={() => setShowAdd(true)}>+ Add Lead Manually</Button>
+            </div>
           </div>
         ) : (
           <>
@@ -168,6 +176,9 @@ export default function LeadsPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <Link href={`/dashboard/leads/${lead.id}`} className="text-white font-medium hover:text-blue-300 block truncate">{lead.businessName}</Link>
+                    {lead.verified === false && (
+                      <span className="inline-block mt-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] px-1.5 py-0.5 rounded">Unverified</span>
+                    )}
                     <p className="text-slate-500 text-xs mt-0.5">{lead.niche} · {lead.city}, {lead.state}</p>
                   </div>
                   <ScoreBadge score={lead.opportunityScore} />
@@ -202,6 +213,9 @@ export default function LeadsPage() {
                   <tr key={lead.id} className={`border-b border-slate-700/50 hover:bg-slate-800/30 transition-colors ${i % 2 === 0 ? '' : 'bg-slate-900/20'}`}>
                     <td className="px-4 py-3">
                       <Link href={`/dashboard/leads/${lead.id}`} className="text-white hover:text-blue-300 font-medium transition-colors">{lead.businessName}</Link>
+                      {lead.verified === false && (
+                        <span className="ml-2 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap">Unverified</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-slate-400 whitespace-nowrap">{lead.niche}</td>
                     <td className="px-4 py-3 text-slate-400 whitespace-nowrap">{lead.city}, {lead.state}</td>
@@ -245,6 +259,7 @@ export default function LeadsPage() {
       {showAdd && <AddLeadModal onClose={() => setShowAdd(false)} onSaved={() => { setShowAdd(false); fetchLeads(); toast('Lead added!') }} />}
       {editLead && <AddLeadModal lead={editLead} onClose={() => setEditLead(null)} onSaved={() => { setEditLead(null); fetchLeads(); toast('Lead updated!') }} />}
       {showImport && <ImportModal onClose={() => setShowImport(false)} onImported={() => { setShowImport(false); fetchLeads(); }} />}
+      {showDiscover && <DiscoverModal onClose={() => setShowDiscover(false)} onSaved={() => { setShowDiscover(false); fetchLeads(); }} />}
     </div>
   )
 }
