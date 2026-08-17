@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { signToken, SESSION_COOKIE } from '@/lib/auth'
 import { rateLimit, clientIp } from '@/lib/rate-limit'
+import { sendWelcomeEmail } from '@/lib/email'
 
 // Public endpoint — cap account creation per IP.
 const SIGNUP_MAX = 5
@@ -75,6 +76,10 @@ export async function POST(req: NextRequest) {
     await prisma.activityLog.create({
       data: { userId: user.id, actionType: 'user_signup', description: `${user.email} created an account` },
     })
+
+    // Fire-and-forget: the account already exists, so a mail failure must not
+    // turn a successful signup into an error for the user.
+    void sendWelcomeEmail(user.email, user.fullName)
 
     // Sign the new user straight in.
     const token = await signToken({ userId: user.id, role: user.role })

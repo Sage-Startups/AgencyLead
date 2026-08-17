@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { rateLimit, clientIp } from '@/lib/rate-limit'
+import { sendWaitlistConfirmation, sendWaitlistNotification } from '@/lib/email'
 
 // Public endpoint — cap submissions per IP so it can't be flooded by bots.
 const WAITLIST_MAX = 5
@@ -25,6 +26,11 @@ export async function POST(req: NextRequest) {
     await prisma.activityLog.create({
       data: { actionType: 'waitlist_signup', description: `${email} joined waitlist` }
     })
+    // Fire-and-forget: the signup is already saved, so email problems must
+    // not surface as a failure to the person who just submitted the form.
+    void sendWaitlistConfirmation(signup.email, signup.name)
+    void sendWaitlistNotification(signup)
+
     return NextResponse.json({ ok: true, id: signup.id })
   } catch (err) {
     console.error(err)
