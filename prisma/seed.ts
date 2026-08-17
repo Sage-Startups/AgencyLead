@@ -22,6 +22,22 @@ async function main() {
     },
   })
 
+  // Super admin: the owner-level account with whole-site visibility.
+  const superEmail = (process.env.SUPERADMIN_EMAIL || 'superadmin@agencyleadradar.com').toLowerCase()
+  const superPassword = process.env.SUPERADMIN_PASSWORD || 'superadmin123'
+  const superHash = await bcrypt.hash(superPassword, 10)
+  await prisma.user.upsert({
+    where: { email: superEmail },
+    update: { passwordHash: superHash, role: 'superadmin' },
+    create: {
+      email: superEmail,
+      passwordHash: superHash,
+      fullName: 'Super Admin',
+      role: 'superadmin',
+      plan: 'pro',
+    },
+  })
+
   // Create demo user (public read-only account)
   const demoEmail = (process.env.DEMO_EMAIL || 'demo@agencyleadradar.com').toLowerCase()
   const demoHash = await bcrypt.hash('demo123', 10)
@@ -42,8 +58,9 @@ async function main() {
   const existingLeadCount = await prisma.lead.count({ where: { userId: demo.id } })
   if (existingLeadCount > 0) {
     console.log(`Demo leads already present (${existingLeadCount}). Skipping lead seed.`)
-    console.log(`Admin user: ${adminEmail}`)
-    console.log(`Demo user:  ${demoEmail}`)
+    console.log(`Super admin: ${superEmail}`)
+    console.log(`Admin user:  ${adminEmail}`)
+    console.log(`Demo user:   ${demoEmail}`)
     return
   }
 
@@ -110,8 +127,9 @@ async function main() {
   }
 
   console.log(`Seeded ${rawLeads.length} demo leads for demo user`)
-  console.log(`Admin user: ${adminEmail}`)
-  console.log(`Demo user:  ${demoEmail}`)
+  console.log(`Super admin: ${superEmail}`)
+  console.log(`Admin user:  ${adminEmail}`)
+  console.log(`Demo user:   ${demoEmail}`)
 }
 
 main()
