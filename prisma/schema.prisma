@@ -22,8 +22,16 @@ model User {
   // "what is this account allowed to do right now".
   // free | starter | agency | pro
   plan                 String    @default("free")
-  stripeCustomerId     String?   @unique
-  stripeSubscriptionId String?   @unique
+  // Indexed rather than @unique deliberately. This project provisions the
+  // database with `prisma db push`, and adding a unique constraint makes push
+  // demand --accept-data-loss. Putting that flag in the build command would
+  // permanently allow any later schema edit to silently drop production
+  // columns, which is a far worse risk than the constraint is worth.
+  // Uniqueness is upheld in application code: checkout only creates a Stripe
+  // customer when the user has none, and no query uses findUnique on these.
+  // If you migrate to versioned migrations later, restore @unique here.
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
   // Mirrors Stripe: active | trialing | past_due | canceled | incomplete
   subscriptionStatus   String?
   currentPeriodEnd     DateTime?
@@ -33,6 +41,8 @@ model User {
   aiAudits      AiAudit[]
   importBatches ImportBatch[]
   activityLogs  ActivityLog[]
+
+  @@index([stripeCustomerId])
 }
 
 model Lead {
