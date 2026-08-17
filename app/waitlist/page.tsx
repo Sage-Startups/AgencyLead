@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import Link from 'next/link'
 import { Nav } from '@/components/Nav'
 import { Footer } from '@/components/Footer'
 import { Button } from '@/components/ui/Button'
@@ -31,8 +32,8 @@ export default function WaitlistPage() {
             <div className="w-16 h-16 bg-green-500/20 border border-green-500/30 rounded-full flex items-center justify-center mx-auto mb-6">
               <span className="text-green-400 text-2xl">✓</span>
             </div>
-            <h1 className="text-2xl font-bold text-white mb-3">You're on the list!</h1>
-            <p className="text-slate-400">We'll be in touch when AgencyLead Radar opens for early access. Thank you for your interest.</p>
+            <h1 className="text-2xl font-bold text-white mb-3">You&apos;re on the list!</h1>
+            <p className="text-slate-400">We&apos;ll be in touch when AgencyLead Radar opens for early access. Thank you for your interest.</p>
           </div>
         </main>
         <Footer />
@@ -82,6 +83,10 @@ export default function WaitlistPage() {
               <textarea rows={3} value={form.message} onChange={e => setForm(prev => ({ ...prev, message: e.target.value }))} placeholder="Anything you'd like us to know..." className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 text-sm resize-none" />
             </div>
             <Button type="submit" className="w-full" size="lg" disabled={loading}>{loading ? 'Submitting...' : 'Join the Waitlist'}</Button>
+            <p className="text-slate-500 text-xs text-center">
+              By joining, you agree we may store your details and contact you about early access.
+              See our <Link href="/privacy" className="text-blue-400 hover:text-blue-300">Privacy Policy</Link>.
+            </p>
           </form>
         </div>
       </main>

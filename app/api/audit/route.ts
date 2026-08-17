@@ -2,34 +2,26 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import OpenAI from 'openai'
+import { rateLimit } from '@/lib/rate-limit'
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+// Created per request rather than at module scope: constructing the client
+// without an API key throws, and the module is evaluated at build time. Lazy
+// init keeps OPENAI_API_KEY genuinely optional — the app builds and runs
+// without it, and only this endpoint reports that it is not configured.
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+}
 
-// Lightweight in-memory rate limit so the public demo can't be used to spam
-// OpenAI and run up the owner's bill. Per-instance (resets on cold start),
-// which is enough to stop a sustained loop. Pair with a hard spend cap on the
-// OpenAI key for full protection.
+// Cap AI generations per user so the public demo can't be used to spam OpenAI
+// and run up the owner's bill. Pair with a hard spend cap on the OpenAI key.
 const RATE_WINDOW_MS = 10 * 60 * 1000
 const RATE_MAX = 5
-const auditHits = new Map<string, number[]>()
-
-function isRateLimited(userId: string): boolean {
-  const now = Date.now()
-  const hits = (auditHits.get(userId) || []).filter(t => now - t < RATE_WINDOW_MS)
-  if (hits.length >= RATE_MAX) {
-    auditHits.set(userId, hits)
-    return true
-  }
-  hits.push(now)
-  auditHits.set(userId, hits)
-  return false
-}
 
 export async function POST(req: NextRequest) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  if (isRateLimited(session.userId)) {
+  if (rateLimit(`audit:${session.userId}`, RATE_MAX, RATE_WINDOW_MS)) {
     return NextResponse.json(
       { error: 'Rate limit reached. Please wait a few minutes before generating more AI audits.' },
       { status: 429 }
@@ -80,7 +72,7 @@ Return a JSON object with exactly these fields:
 }`
 
   try {
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
       response_format: { type: 'json_object' },
