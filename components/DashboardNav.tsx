@@ -8,19 +8,28 @@ const links = [
   { href: '/dashboard', label: 'Dashboard', exact: true },
   { href: '/dashboard/leads', label: 'Lead Scanner' },
   { href: '/dashboard/saved', label: 'Saved Leads' },
+  { href: '/dashboard/billing', label: 'Billing' },
 ]
 
-export function DashboardNav({ userName, isAdmin }: { userName?: string; isAdmin?: boolean }) {
+export function DashboardNav({
+  userName,
+  isAdmin,
+  isSuperAdmin,
+}: {
+  userName?: string
+  isAdmin?: boolean
+  isSuperAdmin?: boolean
+}) {
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' })
-    router.push('/demo')
+    router.push('/login')
   }
 
-  function navLink(href: string, label: string, active: boolean) {
+  function navLink(href: string, label: string, active: boolean, accent = false) {
     return (
       <Link
         key={href}
@@ -28,7 +37,11 @@ export function DashboardNav({ userName, isAdmin }: { userName?: string; isAdmin
         onClick={() => setOpen(false)}
         className={cn(
           'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors',
-          active ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          active
+            ? 'bg-blue-600 text-white'
+            : accent
+              ? 'text-amber-300 hover:text-amber-200 hover:bg-slate-800'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
         )}
       >
         {label}
@@ -53,10 +66,8 @@ export function DashboardNav({ userName, isAdmin }: { userName?: string; isAdmin
         </button>
       </div>
 
-      {/* Overlay on mobile when the drawer is open */}
       {open && <div className="md:hidden fixed inset-0 bg-black/60 z-40" onClick={() => setOpen(false)} />}
 
-      {/* Sidebar — slides in on mobile, always visible on md+ */}
       <aside
         className={cn(
           'w-56 bg-slate-900 border-r border-slate-800 flex flex-col fixed left-0 top-0 h-full z-50 transform transition-transform duration-200',
@@ -72,9 +83,10 @@ export function DashboardNav({ userName, isAdmin }: { userName?: string; isAdmin
             <span className="text-white font-semibold text-sm">AgencyLead Radar</span>
           </Link>
         </div>
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {links.map(l => navLink(l.href, l.label, l.exact ? pathname === l.href : pathname.startsWith(l.href)))}
-          {isAdmin && navLink('/admin', 'Admin', pathname.startsWith('/admin'))}
+          {isAdmin && navLink('/admin', 'Admin', pathname === '/admin')}
+          {isSuperAdmin && navLink('/admin/overview', 'Super Admin', pathname.startsWith('/admin/overview'), true)}
         </nav>
         <div className="p-4 border-t border-slate-800">
           <p className="text-slate-500 text-xs mb-3 truncate">{userName}</p>

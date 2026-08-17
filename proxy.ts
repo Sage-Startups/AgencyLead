@@ -14,7 +14,8 @@ export async function proxy(req: NextRequest) {
   const session = await verifyToken(token)
   if (!session) return NextResponse.redirect(new URL('/demo', req.url))
 
-  if (pathname.startsWith('/admin') && session.role !== 'admin') {
+  const isStaff = session.role === 'admin' || session.role === 'superadmin'
+  if (pathname.startsWith('/admin') && !isStaff) {
     return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 

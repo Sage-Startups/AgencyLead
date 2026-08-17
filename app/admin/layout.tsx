@@ -5,10 +5,11 @@ import { ToastContainer } from '@/components/ui/Toast'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser()
-  if (!user || user.role !== 'admin') redirect('/dashboard')
+  const isStaff = user && (user.role === 'admin' || user.role === 'superadmin')
+  if (!isStaff) redirect('/dashboard')
   return (
     <div className="min-h-screen bg-slate-950">
-      <DashboardNav userName={user.email} isAdmin={true} />
+      <DashboardNav userName={user!.email} isAdmin isSuperAdmin={user!.role === 'superadmin'} />
       <main className="md:ml-56 min-h-screen p-4 pt-20 md:p-6">{children}</main>
       <ToastContainer />
     </div>
