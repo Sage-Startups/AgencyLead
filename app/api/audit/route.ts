@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import OpenAI from 'openai'
 import { rateLimit } from '@/lib/rate-limit'
+import { checkAuditQuota } from '@/lib/plans'
 
 // Created per request rather than at module scope: constructing the client
 // without an API key throws, and the module is evaluated at build time. Lazy
@@ -32,6 +33,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: 'AI audit is not configured. Add an OPENAI_API_KEY environment variable to enable AI generation.' },
       { status: 503 }
+    )
+  }
+
+  const account = await prisma.user.findUnique({ where: { id: session.userId } })
+  if (!account) return NextResponse.json({ error: 'Account not found' }, { status: 404 })
+
+  const quota = await checkAuditQuota(account)
+  if (!quota.allowed) {
+    return NextResponse.json(
+      { error: quota.message, code: 'quota_exceeded', used: quota.used, limit: quota.limit },
+      { status: 402 }
     )
   }
 

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { calculateOpportunityScore } from '@/lib/scoring'
 import { isDemoUser, DEMO_READONLY_MESSAGE } from '@/lib/demo'
+import { checkLeadQuota } from '@/lib/plans'
 
 const REQUIRED = ['business_name', 'niche', 'city', 'state']
 
@@ -16,6 +17,22 @@ export async function POST(req: NextRequest) {
   const { rows, fileName } = await req.json()
   if (!Array.isArray(rows) || rows.length === 0) {
     return NextResponse.json({ error: 'No rows provided' }, { status: 400 })
+  }
+
+  const account = await prisma.user.findUnique({ where: { id: session.userId } })
+  if (!account) return NextResponse.json({ error: 'Account not found' }, { status: 404 })
+
+  const quota = await checkLeadQuota(account, rows.length)
+  if (!quota.allowed) {
+    return NextResponse.json(
+      {
+        error: `This import would add ${rows.length} leads. ${quota.message}`,
+        code: 'quota_exceeded',
+        used: quota.used,
+        limit: quota.limit,
+      },
+      { status: 402 }
+    )
   }
 
   const headers = Object.keys(rows[0]).map((h: string) => h.toLowerCase().trim().replace(/ /g, '_'))

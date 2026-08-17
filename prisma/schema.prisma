@@ -13,9 +13,21 @@ model User {
   passwordHash String
   fullName     String?
   companyName  String?
+  // user | admin | superadmin
   role         String   @default("user")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  // Subscription state. Kept on the user so a single query answers
+  // "what is this account allowed to do right now".
+  // free | starter | agency | pro
+  plan                 String    @default("free")
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  // Mirrors Stripe: active | trialing | past_due | canceled | incomplete
+  subscriptionStatus   String?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
 
   leads         Lead[]
   aiAudits      AiAudit[]

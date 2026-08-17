@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { calculateOpportunityScore } from '@/lib/scoring'
 import { isDemoUser, DEMO_READONLY_MESSAGE } from '@/lib/demo'
+import { checkLeadQuota } from '@/lib/plans'
 
 export async function GET(req: NextRequest) {
   const session = await getSession()
@@ -35,6 +36,17 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (await isDemoUser(session.userId)) {
     return NextResponse.json({ error: DEMO_READONLY_MESSAGE }, { status: 403 })
+  }
+
+  const account = await prisma.user.findUnique({ where: { id: session.userId } })
+  if (!account) return NextResponse.json({ error: 'Account not found' }, { status: 404 })
+
+  const quota = await checkLeadQuota(account, 1)
+  if (!quota.allowed) {
+    return NextResponse.json(
+      { error: quota.message, code: 'quota_exceeded', used: quota.used, limit: quota.limit },
+      { status: 402 }
+    )
   }
 
   const data = await req.json()
