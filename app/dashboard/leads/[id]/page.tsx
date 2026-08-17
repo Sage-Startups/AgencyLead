@@ -42,6 +42,9 @@ type Lead = {
   opportunityScore: number
   recommendedService: string | null
   status: string
+  source?: string
+  verified?: boolean
+  discoveryNotes?: string | null
   aiAudits: AiAudit[]
 }
 
@@ -124,6 +127,21 @@ export default function LeadDetailPage() {
     toast(`Status updated to ${status.replace('_', ' ')}`)
   }
 
+  async function markVerified() {
+    const res = await fetch(`/api/leads/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ verified: true }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      toast(data.error || 'Could not update lead', 'error')
+      return
+    }
+    setLead(prev => prev ? { ...prev, verified: true } : prev)
+    toast('Marked as verified')
+  }
+
   if (loading) return <div className="p-8 text-slate-400">Loading...</div>
   if (!lead) return <div className="p-8 text-slate-400">Lead not found. <Link href="/dashboard/leads" className="text-blue-400">Back to leads</Link></div>
 
@@ -143,6 +161,22 @@ export default function LeadDetailPage() {
           <Badge variant={statusVariant(lead.status)}>{lead.status.replace('_', ' ')}</Badge>
         </div>
       </div>
+
+      {lead.verified === false && (
+        <div className="bg-amber-950/30 border border-amber-800/40 rounded-xl px-4 py-3 mb-6">
+          <p className="text-amber-200 text-sm">
+            <strong>Unverified AI suggestion.</strong> This prospect was generated from a language
+            model, not a live business directory. Confirm the business exists and look up its real
+            website, contact details and reviews before contacting it or generating outreach.
+          </p>
+          {lead.discoveryNotes && (
+            <p className="text-amber-200/70 text-xs mt-2 whitespace-pre-wrap">{lead.discoveryNotes}</p>
+          )}
+          <div className="mt-3">
+            <Button size="sm" variant="secondary" onClick={markVerified}>I&apos;ve verified this business</Button>
+          </div>
+        </div>
+      )}
 
       {/* Action buttons */}
       <div className="flex flex-wrap gap-2 mb-6">
