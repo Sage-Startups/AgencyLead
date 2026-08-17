@@ -5,20 +5,18 @@ import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { PLANS, PAID_PLAN_IDS, effectivePlan } from '@/lib/plans'
 import { isStripeConfigured } from '@/lib/stripe'
+import { AccountsTable } from './AccountsTable'
+import type { AdminUser } from './EditUserModal'
 
 export const metadata = { title: 'Super Admin — AgencyLead Radar' }
+
+// Always read fresh: this page is an administrative view of live state.
+export const dynamic = 'force-dynamic'
 
 /** Cutoff for "new in the last 30 days". Kept out of the render body so the
  *  clock read is part of data loading rather than rendering. */
 function thirtyDaysAgo(): Date {
   return new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-}
-
-function planBadge(planId: string) {
-  if (planId === 'pro') return 'success'
-  if (planId === 'agency') return 'info'
-  if (planId === 'starter') return 'warning'
-  return 'default'
 }
 
 export default async function SuperAdminOverviewPage() {
@@ -28,7 +26,7 @@ export default async function SuperAdminOverviewPage() {
   if (me.role !== 'superadmin') redirect('/admin')
 
   const [
-    users,
+    rawUsers,
     totalLeads,
     totalAudits,
     totalWaitlist,
@@ -48,17 +46,33 @@ export default async function SuperAdminOverviewPage() {
     prisma.user.count({ where: { createdAt: { gte: thirtyDaysAgo() } } }),
   ])
 
-  // Monthly recurring revenue from accounts whose subscription is live.
-  const subscribers = users.filter(u => {
-    const p = effectivePlan(u)
-    return p.id !== 'free'
-  })
+  // Serialise for the client table (dates to ISO, drop the password hash).
+  const users: AdminUser[] = rawUsers.map(u => ({
+    id: u.id,
+    email: u.email,
+    fullName: u.fullName,
+    companyName: u.companyName,
+    role: u.role,
+    plan: u.plan,
+    subscriptionStatus: u.subscriptionStatus,
+    currentPeriodEnd: u.currentPeriodEnd ? u.currentPeriodEnd.toISOString() : null,
+    cancelAtPeriodEnd: u.cancelAtPeriodEnd,
+    createdAt: u.createdAt.toISOString(),
+    stripeCustomerId: u.stripeCustomerId,
+    stripeSubscriptionId: u.stripeSubscriptionId,
+    leadCount: u._count.leads,
+    auditCount: u._count.aiAudits,
+  }))
+
+  // MRR is derived, never stored: the sum of plan prices for accounts whose
+  // subscription is currently live. Editing a plan or status changes it.
+  const subscribers = rawUsers.filter(u => effectivePlan(u).id !== 'free')
   const mrr = subscribers.reduce((sum, u) => sum + effectivePlan(u).priceUsd, 0)
 
   const planCounts = Object.fromEntries(
     (['free', ...PAID_PLAN_IDS] as const).map(id => [
       id,
-      users.filter(u => effectivePlan(u).id === id).length,
+      rawUsers.filter(u => effectivePlan(u).id === id).length,
     ])
   ) as Record<string, number>
 
@@ -80,12 +94,16 @@ export default async function SuperAdminOverviewPage() {
           <h1 className="text-2xl font-bold text-white">Super Admin</h1>
           <Badge variant="warning">Full site access</Badge>
         </div>
-        <p className="text-slate-400 text-sm">Whole-platform overview: accounts, subscriptions, revenue, and activity.</p>
+        <p className="text-slate-400 text-sm">
+          Whole-platform overview. Every account is editable — click Edit on any row.
+        </p>
       </div>
 
       {!isStripeConfigured() && (
         <div className="bg-amber-950/30 border border-amber-800/40 rounded-xl px-4 py-3 mb-6 text-amber-200 text-sm">
-          Stripe is not configured, so revenue figures will stay at zero. Set <code>STRIPE_SECRET_KEY</code> and the plan price IDs to enable billing.
+          Stripe is not configured. You can still set plans and statuses by hand here, but nothing
+          will be charged and Stripe will not send subscription updates. Set <code>STRIPE_SECRET_KEY</code> and
+          the plan price IDs to take real payments.
         </div>
       )}
 
@@ -99,9 +117,22 @@ export default async function SuperAdminOverviewPage() {
         ))}
       </div>
 
-      {/* Plan distribution */}
+      {/* Revenue breakdown */}
       <Card className="mb-8">
-        <h2 className="text-white font-semibold mb-4">Plan distribution</h2>
+        <div className="flex items-start justify-between mb-4 gap-4">
+          <div>
+            <h2 className="text-white font-semibold">Revenue &amp; plan distribution</h2>
+            <p className="text-slate-500 text-xs mt-1">
+              MRR is calculated live from accounts with an active, trialing or past-due
+              subscription. It is not a stored figure — change an account&apos;s plan or status
+              to change it.
+            </p>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-slate-500 text-xs">Monthly recurring</p>
+            <p className="text-2xl font-bold text-green-400">${mrr.toLocaleString()}</p>
+          </div>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {(['free', ...PAID_PLAN_IDS] as const).map(id => {
             const p = PLANS[id]
@@ -120,46 +151,10 @@ export default async function SuperAdminOverviewPage() {
         </div>
       </Card>
 
-      {/* Accounts */}
+      {/* Accounts — editable */}
       <Card className="mb-8">
         <h2 className="text-white font-semibold mb-4">All accounts ({users.length})</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-700">
-                {['Email', 'Name', 'Role', 'Plan', 'Status', 'Leads', 'Audits', 'Joined'].map(h => (
-                  <th key={h} className="text-left px-3 py-2 text-slate-500 text-xs uppercase tracking-wider whitespace-nowrap">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {users.map(u => {
-                const p = effectivePlan(u)
-                return (
-                  <tr key={u.id} className="border-b border-slate-700/50 hover:bg-slate-800/30">
-                    <td className="px-3 py-2 text-slate-200 whitespace-nowrap">{u.email}</td>
-                    <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{u.fullName || '—'}</td>
-                    <td className="px-3 py-2">
-                      <Badge variant={u.role === 'superadmin' ? 'danger' : u.role === 'admin' ? 'warning' : 'default'}>
-                        {u.role}
-                      </Badge>
-                    </td>
-                    <td className="px-3 py-2"><Badge variant={planBadge(p.id)}>{p.name}</Badge></td>
-                    <td className="px-3 py-2 text-slate-400 text-xs whitespace-nowrap">
-                      {u.subscriptionStatus || '—'}
-                      {u.cancelAtPeriodEnd && <span className="text-amber-400"> (cancelling)</span>}
-                    </td>
-                    <td className="px-3 py-2 text-slate-300">{u._count.leads}</td>
-                    <td className="px-3 py-2 text-slate-300">{u._count.aiAudits}</td>
-                    <td className="px-3 py-2 text-slate-500 text-xs whitespace-nowrap">
-                      {new Date(u.createdAt).toLocaleDateString()}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+        <AccountsTable users={users} />
       </Card>
 
       {/* Activity */}
