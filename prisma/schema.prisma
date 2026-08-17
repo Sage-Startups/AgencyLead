@@ -66,6 +66,14 @@ model Lead {
   opportunityScore   Int      @default(0)
   recommendedService String?
   status             String   @default("new")
+  // How this lead entered the system: manual | csv | ai_suggested
+  source             String   @default("manual")
+  // AI-suggested leads start unverified. The model cannot browse the web, so
+  // its suggestions are research starting points, not confirmed businesses.
+  // Set true once a human has checked the business exists and its details.
+  verified           Boolean  @default(true)
+  // Why the AI proposed this prospect, and what still needs checking.
+  discoveryNotes     String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
