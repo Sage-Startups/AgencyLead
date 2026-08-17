@@ -242,7 +242,7 @@ export default function LeadDetailPage() {
         {!latestAudit && !generatingAudit && (
           <div className="py-8 text-center text-slate-500">
             <p className="mb-3">No AI audit generated yet.</p>
-            <p className="text-xs">Click "Generate AI Audit" to create a personalized audit and outreach pack for this lead.</p>
+            <p className="text-xs">Click &ldquo;Generate AI Audit&rdquo; to create a personalized audit and outreach pack for this lead.</p>
           </div>
         )}
 
