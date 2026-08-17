@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
+
+// Public endpoint — cap submissions per IP so it can't be flooded by bots.
+const WAITLIST_MAX = 5
+const WAITLIST_WINDOW_MS = 10 * 60 * 1000
 
 export async function POST(req: NextRequest) {
+  if (rateLimit(`waitlist:${clientIp(req)}`, WAITLIST_MAX, WAITLIST_WINDOW_MS)) {
+    return NextResponse.json(
+      { error: 'Too many submissions. Please try again in a few minutes.' },
+      { status: 429 }
+    )
+  }
+
   try {
     const { name, email, companyName, buyerType, mainService, message } = await req.json()
     if (!name || !email) {
@@ -20,7 +32,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
-  const signups = await prisma.waitlistSignup.findMany({ orderBy: { createdAt: 'desc' } })
-  return NextResponse.json(signups)
-}
+// NOTE: There is deliberately no GET handler here. Waitlist signups contain
+// personal data (name, email, company) and must never be readable from a
+// public endpoint. Admins read them via GET /api/admin/waitlist, which is
+// gated behind an authenticated session with role === 'admin'.

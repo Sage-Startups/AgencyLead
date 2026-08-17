@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { signToken, SESSION_COOKIE } from '@/lib/auth'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
+
+// Cap login attempts per IP so the admin account can't be brute forced.
+const LOGIN_MAX_ATTEMPTS = 10
+const LOGIN_WINDOW_MS = 10 * 60 * 1000
 
 export async function POST(req: NextRequest) {
   const contentType = req.headers.get('content-type') || ''
@@ -14,6 +19,10 @@ export async function POST(req: NextRequest) {
     const url = new URL('/login', req.url)
     url.searchParams.set('error', message)
     return NextResponse.redirect(url, 303)
+  }
+
+  if (rateLimit(`login:${clientIp(req)}`, LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MS)) {
+    return fail(429, 'Too many login attempts. Please wait a few minutes and try again.')
   }
 
   try {
