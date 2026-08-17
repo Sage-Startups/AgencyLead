@@ -26,6 +26,8 @@ export function Footer() {
             <h4 className="text-slate-300 font-medium mb-3 text-sm">Company</h4>
             <ul className="space-y-2 text-sm">
               <li><Link href="/waitlist" className="text-slate-500 hover:text-slate-300 transition-colors">Join Waitlist</Link></li>
+              <li><Link href="/privacy" className="text-slate-500 hover:text-slate-300 transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/terms" className="text-slate-500 hover:text-slate-300 transition-colors">Terms of Service</Link></li>
             </ul>
           </div>
         </div>

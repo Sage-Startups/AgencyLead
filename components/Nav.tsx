@@ -1,11 +1,9 @@
 'use client'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { Button } from './ui/Button'
 
 export function Nav() {
-  const pathname = usePathname()
   const [open, setOpen] = useState(false)
 
   return (
